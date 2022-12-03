@@ -1,11 +1,11 @@
 import strawberry
-from strawberry.asgi import GraphQL
 from fastapi import FastAPI
-
+from strawberry.fastapi import GraphQLRouter
 
 from app import settings
 from app.db.session import create_async_database
 from app.graphql.query import Query
+from app.web3.session import get_web3_provider, uniswap_factory
 
 NAME = "xdefi-api"
 ROOT_PATH = f"/{NAME}"
@@ -13,6 +13,7 @@ ROOT_PATH = f"/{NAME}"
 
 def create_app() -> FastAPI:
     database_settings: settings.DatabaseSettings = settings.get_database_settings()  # noqa: E501
+    web3_settings: settings.Web3Settings = settings.get_web3_settings()  # noqa: E501
 
     app = FastAPI(
         title=NAME,
@@ -22,12 +23,20 @@ def create_app() -> FastAPI:
         root_path=ROOT_PATH,
     )
 
-    schema = strawberry.Schema(query=Query)
-
-    graphql_app = GraphQL(schema)
-
+    # App State
+    app.state.app_name = NAME
     app.state.engine, app.state.sessionmaker = create_async_database(uri=database_settings.uri)  # noqa: E501
-    app.add_route("/graphql", graphql_app)
-    app.add_websocket_route("/graphql", graphql_app)
+    app.state.web3 = get_web3_provider(web3_settings.node_url)
+    app.state.uniswap = uniswap_factory(app.state.web3)
+
+    # GraphQL
+    schema = strawberry.Schema(query=Query)
+    graphql_app = GraphQLRouter(
+        schema,
+        context_getter=lambda: dict(app=app,),
+    )
+
+    # Routers
+    app.include_router(graphql_app, prefix="/graphql")
 
     return app

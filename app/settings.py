@@ -3,10 +3,19 @@ from functools import lru_cache
 from pydantic import BaseSettings
 from pydantic import PostgresDsn
 from pydantic import validator
+from pydantic import AnyHttpUrl
 
 
 class AsyncPostgresDsn(PostgresDsn):
     allowed_schemes = {"postgresql+asyncpg", }
+
+
+class Web3Settings(BaseSettings):
+    node_url: AnyHttpUrl
+
+    class Config:
+        case_sensitive: bool = False
+        env_prefix: str = "WEB3_"
 
 
 class DatabaseSettings(BaseSettings):
@@ -26,3 +35,8 @@ class DatabaseSettings(BaseSettings):
 @lru_cache
 def get_database_settings() -> DatabaseSettings:
     return DatabaseSettings()
+
+
+@lru_cache()
+def get_web3_settings() -> Web3Settings:
+    return Web3Settings()

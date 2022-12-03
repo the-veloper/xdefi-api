@@ -1,6 +1,7 @@
-from decimal import Decimal
+from typing import List
 
 import strawberry
+from strawberry.types import Info
 
 from app.schemes.token import Token
 
@@ -8,5 +9,8 @@ from app.schemes.token import Token
 @strawberry.type
 class Query:
     @strawberry.field
-    def token(self) -> Token:
-        return Token(id="111", name="test", symbol="test", price=Decimal(1.0))
+    def tokens(self, info: Info) -> List[Token]:
+        app = info.context["app"]
+        ETH_AMOUNT = app.state.web3.toWei('1', 'Ether')
+        price = app.state.uniswap.functions.getEthToTokenInputPrice(ETH_AMOUNT).call()
+        return [Token(id="gega", name="gega", symbol="gega", price=price)]

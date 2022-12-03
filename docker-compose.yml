@@ -16,6 +16,7 @@ services:
       - "8000:8000"
     env_file:
       - db.env
+      - web.env
     depends_on:
       - db
 
