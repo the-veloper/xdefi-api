@@ -51,7 +51,7 @@ class UniswapSyncer(threading.Thread):
     async def load_all_tokens(self):
         await self.load_all(self.state.uniswap_proxy.get_tokens, self.handle_token_data)
 
-    async def run_async(self, *args, **kwargs):
+    async def run_async(self):
         uniswap_settings: UniswapSettings = self.state.uniswap_settings
         while self._stop_event.is_set() is False:
             await self.load_all_pairs()
@@ -62,7 +62,7 @@ class UniswapSyncer(threading.Thread):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        loop.run_until_complete(self.run_async(args))
+        loop.run_until_complete(self.run_async())
         loop.close()
 
     def stop(self):
