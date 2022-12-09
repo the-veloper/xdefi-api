@@ -32,11 +32,10 @@ class UniswapSyncer(threading.Thread):
         self._stop_event = threading.Event()
 
     def handle_pair_data(self, pair_list: list[PairResponse]):
-        self.state.token_graph.add_edges_from(
-            [
-                (pair.token0, pair.token1) for pair in pair_list
-            ]
-        )
+        for pair in pair_list:
+            # weight = balance_target * input / (balance_source + input)
+            # used to calculate the shortest path
+            self.state.token_graph.add_edge(pair.token0, pair.token1, weight=pair.token0Price)  # noqa E501
         logger.info(f"Synced {len(pair_list)} pairs")
 
     def handle_token_data(self, token_list: list[TokenResponse]):
