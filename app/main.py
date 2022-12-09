@@ -7,6 +7,8 @@ from app.core.httpx import create_httpx_client
 from app.db.session import create_async_database
 from app.graphql.query import Query
 from app.proxies.uniswap import UniswapProxy
+from app.routers import healthchecks_router
+from app.schemas.uniswap_api import PairListResponse
 from app.uniswap_pair_sync import UniswapSyncer
 from app.web3.session import get_web3_provider, uniswap_factory
 
@@ -42,7 +44,7 @@ def create_app() -> FastAPI:
         httpx_client=uniswap_client_pool,
         uniswap_settings=app.state.uniswap_settings
     )
-    app.state.uniswap_pairs = {}
+    app.state.uniswap_pairs = PairListResponse(pairs=[])
     app.state.uniswap_syncer = UniswapSyncer(app=app)
     app.state.uniswap_syncer.start()
     # GraphQL
@@ -54,5 +56,11 @@ def create_app() -> FastAPI:
 
     # Routers
     app.include_router(graphql_app, prefix="/graphql")
+
+    app.include_router(
+        healthchecks_router.router,
+        prefix="/healthchecks",
+        tags=["Healthchecks"],
+    )
 
     return app

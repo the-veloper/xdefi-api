@@ -22,7 +22,7 @@ class UniswapSyncer(threading.Thread):
         self.state = app.state
 
     def handle_pair_data(self, pair_list: PairListResponse):
-        print(pair_list)
+        self.state.uniswap_pairs = pair_list
 
     async def run_async(self, *args, **kwargs):
         while True:
