@@ -24,12 +24,13 @@ class Query:
     @strawberry.field
     def best_route(self, route_input: RouteInput, info: Info) -> Route:
         app = info.context["app"]
+        tokens = nx.get_node_attributes(app.state.token_graph, "token")
         shortest_path = nx.shortest_path(
             app.state.token_graph,
             route_input.fromToken,
             route_input.toToken,
             weight=_weight,
         )
-        tokens = nx.get_node_attributes(app.state.token_graph, "token")
+
         path_tokens = [tokens[token] for token in shortest_path]
-        return Route(id="gega", path=shortest_path)
+        return Route(id="gega", path=path_tokens)

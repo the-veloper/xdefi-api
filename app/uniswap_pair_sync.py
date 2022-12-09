@@ -16,10 +16,10 @@ from app.settings import UniswapSettings
 class UniswapSyncer(threading.Thread):
 
     def __init__(
-        self,
-        *args,
-        app: FastAPI,
-        **kwargs
+            self,
+            *args,
+            app: FastAPI,
+            **kwargs
     ):
         super().__init__(*args, **kwargs)
         httpx_settings: settings.HTTPXSettings = settings.get_httpx()
@@ -42,6 +42,7 @@ class UniswapSyncer(threading.Thread):
             # weight = balance_target * input / (balance_source + input)
             # used to calculate the shortest path
             self.state.token_graph.add_edge(pair.token0.id, pair.token1.id, weight=pair.token0Price)  # noqa E501
+            self.handle_token_data([pair.token0, pair.token1])
         logger.info(f"Synced {len(pair_list)} pairs")
 
     def handle_token_data(self, token_list: list[TokenResponse]):
@@ -103,8 +104,9 @@ class UniswapSyncer(threading.Thread):
     async def load_contract_pair(self, pair_index: int):
         if self._stop_event.is_set():
             raise Exception("Stop event is set")
-        contract_data = self.uniswap_factory.get_pair_contract_data(pair_index)
-        logger.info(f"Loaded pair {contract_data}")
+        pair_data = self.uniswap_factory.get_pair(pair_index)
+        self.handle_pair_data([pair_data])
+        logger.info(f"Loaded pair {pair_data}")
 
     def run(self, *args, **kwargs):
         loop = asyncio.new_event_loop()
