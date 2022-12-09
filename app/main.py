@@ -20,7 +20,6 @@ def create_app() -> FastAPI:
     database_settings: settings.DatabaseSettings = settings.get_database_settings()  # noqa: E501
     web3_settings: settings.Web3Settings = settings.get_web3_settings()  # noqa: E501
 
-
     app = FastAPI(
         title=NAME,
         docs_url=None,

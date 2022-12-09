@@ -15,10 +15,10 @@ from app.settings import UniswapSettings
 class UniswapSyncer(threading.Thread):
 
     def __init__(
-            self,
-            *args,
-            app: FastAPI,
-            **kwargs
+        self,
+        *args,
+        app: FastAPI,
+        **kwargs
     ):
         super().__init__(*args, **kwargs)
         httpx_settings: settings.HTTPXSettings = settings.get_httpx()
