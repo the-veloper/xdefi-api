@@ -23,6 +23,20 @@ class UniswapProxy(BaseHTTPXProxy):
             headers={"Content-Type": "application/json"},
         )
 
+    async def graphql_request(self, query: str) -> str:
+        try:
+            response = await self.post(
+                json={"query": query}
+            )
+
+            if response.status_code != 200:
+                raise exceptions.UniswapAPIError("Query failed")
+
+            return response.text
+
+        except (httpx.TimeoutException, httpx.ConnectError):
+            raise exceptions.UniswapAPIConnectionError()
+
     async def get_pairs(self) -> PairListResponse:
         query = """
         {
@@ -43,20 +57,12 @@ class UniswapProxy(BaseHTTPXProxy):
           }
         }
         """
+        response = await self.graphql_request(
+            query=query,
+        )
+
         try:
-            response = await self.post(
-                    json={"query": query}
-            )
-
-            response_parsed = GraphQLPairsResponse.parse_raw(response.text)
-
-            if response.status_code != 200:
-                raise exceptions.UniswapAPIError("Query failed")
-
-            return response_parsed.data
-        except (httpx.TimeoutException, httpx.ConnectError):
-            raise exceptions.UniswapAPIConnectionError()
-
+            return GraphQLPairsResponse.parse_raw(response).data
         except ValidationError:
             raise exceptions.UnexpectedAPIResponseError(
                 "Uniswap API response is not valid"
