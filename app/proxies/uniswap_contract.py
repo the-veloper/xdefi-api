@@ -9,6 +9,7 @@ from app.constants import POOL_ABI, UNISCAP_TOKEN_ABI
 from app.proxies.base import BaseContractProxy
 from app.schemas.uniswap_api import ContractData, TokenResponse, PairResponse
 from app.settings import UniswapSettings
+from app.utils import memoized_method
 
 
 @dataclass
@@ -57,7 +58,9 @@ class UniswapFactoryProxy(BaseContractProxy):
             decimals=decimals,
         )
 
-    def get_pair(self, index: int) -> PairResponse:
+    @memoized_method(maxsize=None)
+    def get_pair(self, index: int, ttl_hash=None) -> PairResponse:
+        del ttl_hash
         contract_data = self.get_pair_contract_data(index)
         token0 = self.get_token(contract_data.token0)
         token1 = self.get_token(contract_data.token1)

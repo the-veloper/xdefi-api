@@ -17,7 +17,7 @@ from app.repositories.pair_repository import PairRepository
 from app.repositories.token_repository import TokenRepository
 from app.schemas.uniswap_api import PairResponse, TokenResponse
 from app.settings import UniswapSettings
-from app.utils import interval
+from app.utils import interval, get_ttl_hash
 
 
 class UniswapSyncer(threading.Thread):
@@ -127,7 +127,7 @@ class UniswapSyncer(threading.Thread):
         if self._stop_event.is_set():
             raise UserInterrupt("Stop event is set")
         logger.info(f"Thread {self.index} loading pair {pair_index}")
-        pair_data = self.uniswap_factory.get_pair(pair_index)
+        pair_data = self.uniswap_factory.get_pair(pair_index, ttl_hash=get_ttl_hash())
         logger.info(f"Thread {self.index} loaded pair {pair_index}")
         await self.handle_pair_data([pair_data])
 
