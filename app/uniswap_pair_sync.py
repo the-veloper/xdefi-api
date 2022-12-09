@@ -4,8 +4,7 @@ import time
 
 from fastapi import FastAPI
 
-from app.schemas.uniswap_api import TokenListResponse, \
-    PairResponse, TokenResponse
+from app.schemas.uniswap_api import PairResponse, TokenResponse
 from app.settings import UniswapSettings
 
 
