@@ -1,4 +1,5 @@
 import asyncio
+import multiprocessing
 import threading
 from asyncio import gather
 
@@ -12,6 +13,7 @@ from app.proxies.uniswap_contract import UniswapFactoryProxy
 from app.proxies.uniswap_graphql import UniswapGraphQLProxy
 from app.schemas.uniswap_api import PairResponse, TokenResponse
 from app.settings import UniswapSettings
+from app.utils import interval
 
 
 class UniswapSyncer(threading.Thread):
@@ -20,6 +22,7 @@ class UniswapSyncer(threading.Thread):
         self,
         *args,
         app: FastAPI,
+        index: int,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -36,6 +39,8 @@ class UniswapSyncer(threading.Thread):
             contract=app.state.uniswap,
         )
         self.app = app
+        self.index = index
+        self.cores = multiprocessing.cpu_count()
         self.state = app.state
         self._stop_event = threading.Event()
 
@@ -101,7 +106,9 @@ class UniswapSyncer(threading.Thread):
 
     def factory_pair_tasks(self):
         tasks = []
-        for pair_index in range(self.uniswap_factory.get_pair_length()):
+        my_interval = interval([0, self.uniswap_factory.get_pair_length()], self.cores)[self.index]  # noqa: E501
+        logger.info(f"Thread {self.index} will process pairs {my_interval}")
+        for pair_index in range(my_interval[0], my_interval[1]):
             tasks.append(asyncio.create_task(self.load_contract_pair(pair_index)))
         return tasks
 
@@ -112,11 +119,21 @@ class UniswapSyncer(threading.Thread):
         await self.handle_pair_data([pair_data])
         logger.info(f"Loaded pair {pair_data}")
 
+    # dsa
     def run(self, *args, **kwargs):
+        logger.info("Starting Uniswap syncer")
         try:
             asyncio.run(self.run_async())
         except UserInterrupt:
-            pass
+            logger.critical("User interrupt. Stopping syncer")
 
     def stop(self):
         self._stop_event.set()
+
+
+def start_threads(app: FastAPI):
+    cpu_cores = multiprocessing.cpu_count()
+    for index in range(cpu_cores):
+        syncer = UniswapSyncer(app=app, index=index)
+        syncer.start()
+        app.state.syncers.append(syncer)

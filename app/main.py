@@ -8,9 +8,8 @@ from strawberry.fastapi import GraphQLRouter
 from app import settings
 from app.db.session import create_async_database
 from app.graphql.query import Query
-from app.repositories.token_repository import TokenRepository
 from app.routers import healthchecks_router
-from app.uniswap_pair_sync import UniswapSyncer
+from app.uniswap_pair_sync import start_threads
 from app.web3.session import get_web3_provider, uniswap_factory
 
 NAME = "xdefi-api"
@@ -46,8 +45,9 @@ def create_app() -> FastAPI:
         await gather(
             app.state.engine.dispose(),
         )
-        app.state.uniswap_syncer.stop()
-        app.state.uniswap_syncer.join()
+        for syncer in app.state.syncers:
+            syncer.stop()
+            syncer.join()
 
     # GraphQL
     schema = strawberry.Schema(query=Query)
@@ -65,8 +65,8 @@ def create_app() -> FastAPI:
         tags=["Healthchecks"],
     )
 
-    app.state.uniswap_syncer = UniswapSyncer(app=app)
-    app.state.uniswap_syncer.start()
+    app.state.syncers = []
+    start_threads(app)
 
     return app
 
