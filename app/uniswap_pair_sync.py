@@ -47,6 +47,8 @@ class UniswapSyncer(threading.Thread):
         skip = 0
         first = 1000
         while True:
+            if self._stop_event.is_set():
+                break
             try:
                 items = await getter(skip=skip, first=first)
             except Exception as e:
@@ -68,7 +70,9 @@ class UniswapSyncer(threading.Thread):
         uniswap_settings: UniswapSettings = self.state.uniswap_settings
         task_tokens = asyncio.create_task(self.load_all_tokens())
         task_pairs = asyncio.create_task(self.load_all_pairs())
-        while self._stop_event.is_set() is False:
+        while True:
+            if self._stop_event.is_set():
+                break
             await gather(task_tokens, task_pairs)
             await asyncio.sleep(uniswap_settings.sync_interval)
 
