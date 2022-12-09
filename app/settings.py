@@ -27,6 +27,7 @@ class Web3Settings(BaseSettings):
 
 class DatabaseSettings(BaseSettings):
     uri: AsyncPostgresDsn
+    uri_sync: PostgresDsn
 
     @validator("uri")
     @classmethod

@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 
 @dataclass
 class PostgresRepository:
-    session: AsyncSession
+    session: Session

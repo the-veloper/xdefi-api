@@ -22,8 +22,8 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('id', sa.String(), nullable=False),
-    sa.Column('token0Price', sa.Numeric(precision=20, scale=10), nullable=True),
-    sa.Column('token1Price', sa.Numeric(precision=20, scale=10), nullable=True),
+    sa.Column('token0Price', sa.Numeric(precision=300, scale=100), nullable=True),
+    sa.Column('token1Price', sa.Numeric(precision=300, scale=100), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_pairs_created_at'), 'pairs', ['created_at'], unique=False)

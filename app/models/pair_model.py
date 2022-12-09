@@ -28,5 +28,5 @@ class PairModel(Base, TimeModel):
         cascade="all,delete",
         foreign_keys=[token1_id],
     )
-    token0Price = Column(Numeric(20, 10))
-    token1Price = Column(Numeric(20, 10))
+    token0Price = Column(Numeric(300, 100))
+    token1Price = Column(Numeric(300, 100))

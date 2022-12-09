@@ -4,6 +4,8 @@ import threading
 from asyncio import gather
 
 from fastapi import FastAPI
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from app import settings
 from app.core.httpx import create_httpx_client
@@ -11,6 +13,8 @@ from app.exceptions import UserInterrupt
 from app.logger import logger
 from app.proxies.uniswap_contract import UniswapFactoryProxy
 from app.proxies.uniswap_graphql import UniswapGraphQLProxy
+from app.repositories.pair_repository import PairRepository
+from app.repositories.token_repository import TokenRepository
 from app.schemas.uniswap_api import PairResponse, TokenResponse
 from app.settings import UniswapSettings
 from app.utils import interval
@@ -23,6 +27,8 @@ class UniswapSyncer(threading.Thread):
         *args,
         app: FastAPI,
         index: int,
+        token_repository: TokenRepository,
+        pair_repository: PairRepository,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -42,6 +48,8 @@ class UniswapSyncer(threading.Thread):
         self.index = index
         self.cores = multiprocessing.cpu_count()
         self.state = app.state
+        self.token_repository = token_repository
+        self.pair_repository = pair_repository
         self._stop_event = threading.Event()
 
     async def handle_pair_data(self, pair_list: list[PairResponse]):
@@ -50,11 +58,14 @@ class UniswapSyncer(threading.Thread):
             # used to calculate the shortest path
             self.state.token_graph.add_edge(pair.token0.id, pair.token1.id, weight=pair.token0Price)  # noqa E501
             await self.handle_token_data([pair.token0, pair.token1])
+            self.pair_repository.create_or_update_pair(pair)
         logger.info(f"Synced {len(pair_list)} pairs")
 
     async def handle_token_data(self, token_list: list[TokenResponse]):
         for token in token_list:
             self.state.token_graph.add_node(token.id, token=token)  # noqa E501
+            print("saving token", token)
+            self.token_repository.create_or_update_token(token)
         logger.info(f"Synced {len(token_list)} tokens")
 
     async def load_all(self, getter, setter):
@@ -115,13 +126,22 @@ class UniswapSyncer(threading.Thread):
     async def load_contract_pair(self, pair_index: int):
         if self._stop_event.is_set():
             raise UserInterrupt("Stop event is set")
+        logger.info(f"Thread {self.index} loading pair {pair_index}")
         pair_data = self.uniswap_factory.get_pair(pair_index)
+        logger.info(f"Thread {self.index} loaded pair {pair_index}")
         await self.handle_pair_data([pair_data])
-        logger.info(f"Loaded pair {pair_data}")
 
-    # dsa
+    async def load_pairs_from_db(self):
+        my_interval = interval([0, self.uniswap_factory.get_pair_length()], self.cores)[self.index]  # noqa: E501
+        logger.info(f"Thread {self.index} will process pairs {my_interval}")
+        pairs = self.pair_repository.get_pairs(my_interval[1] - my_interval[0], my_interval[0])  # noqa: E501
+        await self.handle_pair_data(pairs)
+
     def run(self, *args, **kwargs):
         logger.info("Starting Uniswap syncer")
+        logger.info("Loading pairs from DB")
+        asyncio.run(self.load_pairs_from_db())
+        logger.info("Loading pairs from DB finished")
         try:
             asyncio.run(self.run_async())
         except UserInterrupt:
@@ -131,9 +151,26 @@ class UniswapSyncer(threading.Thread):
         self._stop_event.set()
 
 
+def start_syncer(app: FastAPI, index: int):
+    database_settings: settings.DatabaseSettings = settings.get_database_settings()
+    engine = create_engine(database_settings.uri_sync)
+    Session = sessionmaker(bind=engine)
+    with Session.begin() as session:
+        token_repository = TokenRepository(session=session)
+        pair_repository = PairRepository(session=session)
+        syncer = UniswapSyncer(
+            app=app,
+            index=index,
+            token_repository=token_repository,
+            pair_repository=pair_repository,
+        )
+        syncer.start()
+    return syncer
+
+
 def start_threads(app: FastAPI):
     cpu_cores = multiprocessing.cpu_count()
+
     for index in range(cpu_cores):
-        syncer = UniswapSyncer(app=app, index=index)
-        syncer.start()
+        syncer = start_syncer(app, index)
         app.state.syncers.append(syncer)

@@ -8,3 +8,4 @@ strawberry-graphql==0.144.2
 web3==5.31.3
 httpx==0.23.0
 networkx==2.8.8
+psycopg2-binary==2.9.5

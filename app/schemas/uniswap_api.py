@@ -23,6 +23,9 @@ class PairResponse(BaseModel):
     token0Price: Decimal
     token1Price: Decimal
 
+    class Config:
+        orm_mode = True
+
 
 class PairListResponse(BaseModel):
     pairs: list[PairResponse]
