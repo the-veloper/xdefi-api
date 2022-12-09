@@ -21,5 +21,13 @@ class PairListResponse(BaseModel):
     pairs: list[PairResponse]
 
 
+class TokenListResponse(BaseModel):
+    tokens: list[TokenResponse]
+
+
 class GraphQLPairsResponse(BaseModel):
     data: PairListResponse
+
+
+class GraphQLTokensResponse(BaseModel):
+    data: TokenListResponse

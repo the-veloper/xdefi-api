@@ -26,7 +26,7 @@ async def readiness_healthcheck(
     response: Response,
 ):
     healthcheck_status = False
-    if len(request.app.state.uniswap_pairs.pairs):
+    if len(request.app.state.uniswap_pairs):
         healthcheck_status = True
     else:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE

@@ -45,7 +45,7 @@ def create_app() -> FastAPI:
         httpx_client=uniswap_client_pool,
         uniswap_settings=app.state.uniswap_settings
     )
-    app.state.uniswap_pairs = PairListResponse(pairs=[])
+    app.state.uniswap_pairs = {}
     app.state.uniswap_syncer = UniswapSyncer(app=app)
     app.state.uniswap_syncer.start()
 

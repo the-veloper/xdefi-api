@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import ClassVar
 
 import httpx
 from pydantic import ValidationError
 
 from app import exceptions
 from app.proxies.base import BaseHTTPXProxy
-from app.schemas.uniswap_api import PairListResponse, GraphQLPairsResponse
+from app.schemas.uniswap_api import PairListResponse, GraphQLPairsResponse, \
+    TokenListResponse, GraphQLTokensResponse, TokenResponse, PairResponse
 from app.settings import UniswapSettings
 
 
@@ -14,18 +14,16 @@ from app.settings import UniswapSettings
 class UniswapProxy(BaseHTTPXProxy):
     uniswap_settings: UniswapSettings
 
-    GRAPHQL_PATH: ClassVar[str] = "/graphql"
-
-    async def post(self, json: dict):
+    async def _post(self, json: dict):
         return await self.httpx_client.post(
             url=self.uniswap_settings.graphql_url,
             json=json,
             headers={"Content-Type": "application/json"},
         )
 
-    async def graphql_request(self, query: str) -> str:
+    async def _graphql_request(self, query: str) -> str:
         try:
-            response = await self.post(
+            response = await self._post(
                 json={"query": query}
             )
 
@@ -37,32 +35,61 @@ class UniswapProxy(BaseHTTPXProxy):
         except (httpx.TimeoutException, httpx.ConnectError):
             raise exceptions.UniswapAPIConnectionError()
 
-    async def get_pairs(self) -> PairListResponse:
-        query = """
-        {
-          pairs {
+    async def get_pairs(
+        self,
+        skip: int = 0,
+        first: int = 500
+    ) -> list[PairResponse]:
+        query = f"""
+        {{
+          pairs(skip: {skip}, first: {first}) {{
             id
-            token0 {
+            token0 {{
                 id
                 symbol
                 name
-            }
-            token1 {
+            }}
+            token1 {{
                 id
                 symbol
                 name
-            }
+            }}
             token0Price
             token1Price
-          }
-        }
+          }}
+        }}
         """
-        response = await self.graphql_request(
+        response = await self._graphql_request(
             query=query,
         )
 
         try:
-            return GraphQLPairsResponse.parse_raw(response).data
+            return GraphQLPairsResponse.parse_raw(response).data.pairs
+        except ValidationError:
+            raise exceptions.UnexpectedAPIResponseError(
+                "Uniswap API response is not valid"
+            )
+
+    async def get_tokens(
+        self,
+        skip: int = 0,
+        first: int = 500
+    ) -> list[TokenResponse]:
+        query = f"""
+        {{
+          tokens(skip: {skip}, first: {first}) {{
+            id
+            symbol
+            name
+          }}
+        }}
+        """
+        response = await self._graphql_request(
+            query=query,
+        )
+
+        try:
+            return GraphQLTokensResponse.parse_raw(response).data.tokens
         except ValidationError:
             raise exceptions.UnexpectedAPIResponseError(
                 "Uniswap API response is not valid"

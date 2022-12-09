@@ -4,8 +4,8 @@ import time
 
 from fastapi import FastAPI
 
-from app.proxies.uniswap import UniswapProxy
-from app.schemas.uniswap_api import PairListResponse
+from app.schemas.uniswap_api import TokenListResponse, \
+    PairResponse, TokenResponse
 from app.settings import UniswapSettings
 
 
@@ -22,21 +22,41 @@ class UniswapSyncer(threading.Thread):
         self.state = app.state
         self._stop_event = threading.Event()
 
-    def handle_pair_data(self, pair_list: PairListResponse):
-        self.state.uniswap_pairs = pair_list.pairs
-        print(f"Synced {len(pair_list.pairs)} pairs")
+    def handle_pair_data(self, pair_list: list[PairResponse]):
+        for pair in pair_list:
+            self.state.uniswap_pairs[pair.id] = pair
+        print(f"Synced {len(pair_list)} pairs")
 
-    async def run_async(self, *args, **kwargs):
-        while self._stop_event.is_set() is False:
-            uniswap_proxy: UniswapProxy = self.state.uniswap_proxy
-            uniswap_settings: UniswapSettings = self.state.uniswap_settings
+    def handle_token_data(self, token_list: list[TokenResponse]):
+        print(token_list)
+        print(f"Synced {len(token_list)} tokens")
 
+    async def load_all(self, getter, setter):
+        skip = 0
+        first = 1000
+        while True:
             try:
-                pairs = await uniswap_proxy.get_pairs()
-                self.handle_pair_data(pairs)
+                print(f"Loaded {first}, processed: {skip}")
+                items = await getter(skip=skip, first=first)
             except Exception as e:
                 print(e)
+                break
+            if len(items) == 0:
+                break
+            setter(items)
+            skip += first
 
+    async def load_all_pairs(self):
+        await self.load_all(self.state.uniswap_proxy.get_pairs, self.handle_pair_data)
+
+    async def load_all_tokens(self):
+        await self.load_all(self.state.uniswap_proxy.get_tokens, self.handle_token_data)
+
+    async def run_async(self, *args, **kwargs):
+        uniswap_settings: UniswapSettings = self.state.uniswap_settings
+        while self._stop_event.is_set() is False:
+            await self.load_all_pairs()
+            await self.load_all_tokens()
             time.sleep(uniswap_settings.sync_interval)
 
     def run(self, *args, **kwargs):
