@@ -1,3 +1,5 @@
+from asyncio import gather
+
 import strawberry
 from fastapi import FastAPI
 from strawberry.fastapi import GraphQLRouter
@@ -20,7 +22,6 @@ def create_app() -> FastAPI:
     database_settings: settings.DatabaseSettings = settings.get_database_settings()  # noqa: E501
     web3_settings: settings.Web3Settings = settings.get_web3_settings()  # noqa: E501
     httpx_settings: settings.HTTPXSettings = settings.get_httpx()
-
 
     uniswap_client_pool = create_httpx_client(settings=httpx_settings)  # noqa: E501
 
@@ -47,6 +48,17 @@ def create_app() -> FastAPI:
     app.state.uniswap_pairs = PairListResponse(pairs=[])
     app.state.uniswap_syncer = UniswapSyncer(app=app)
     app.state.uniswap_syncer.start()
+
+    # Shutdown handler
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        await gather(
+            app.state.engine.dispose(),
+            uniswap_client_pool.aclose(),
+        )
+        app.state.uniswap_syncer.stop()
+        app.state.uniswap_syncer.join()
+
     # GraphQL
     schema = strawberry.Schema(query=Query)
     graphql_app = GraphQLRouter(

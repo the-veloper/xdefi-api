@@ -20,12 +20,14 @@ class UniswapSyncer(threading.Thread):
         super().__init__(*args, **kwargs)
         self.app = app
         self.state = app.state
+        self._stop_event = threading.Event()
 
     def handle_pair_data(self, pair_list: PairListResponse):
-        self.state.uniswap_pairs = pair_list
+        self.state.uniswap_pairs = pair_list.pairs
+        print(f"Synced {len(pair_list.pairs)} pairs")
 
     async def run_async(self, *args, **kwargs):
-        while True:
+        while self._stop_event.is_set() is False:
             uniswap_proxy: UniswapProxy = self.state.uniswap_proxy
             uniswap_settings: UniswapSettings = self.state.uniswap_settings
 
@@ -43,3 +45,6 @@ class UniswapSyncer(threading.Thread):
 
         loop.run_until_complete(self.run_async(args))
         loop.close()
+
+    def stop(self):
+        self._stop_event.set()
