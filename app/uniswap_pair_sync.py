@@ -66,11 +66,12 @@ class UniswapSyncer(threading.Thread):
 
     async def run_async(self):
         uniswap_settings: UniswapSettings = self.state.uniswap_settings
+        task_tokens = asyncio.create_task(self.load_all_tokens())
+        task_pairs = asyncio.create_task(self.load_all_pairs())
         while self._stop_event.is_set() is False:
-            await self.load_all_pairs()
-            await self.load_all_tokens()
-            time.sleep(uniswap_settings.sync_interval)
-        # test
+            await gather(task_tokens, task_pairs)
+            await asyncio.sleep(uniswap_settings.sync_interval)
+
         await gather(
             self.uniswap_client_pool.aclose(),
         )
