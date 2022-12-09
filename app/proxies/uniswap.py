@@ -5,8 +5,10 @@ from pydantic import ValidationError
 
 from app import exceptions
 from app.proxies.base import BaseHTTPXProxy
-from app.schemas.uniswap_api import PairListResponse, GraphQLPairsResponse, \
-    TokenListResponse, GraphQLTokensResponse, TokenResponse, PairResponse
+from app.schemas.uniswap_api import GraphQLPairsResponse
+from app.schemas.uniswap_api import GraphQLTokensResponse
+from app.schemas.uniswap_api import TokenResponse
+from app.schemas.uniswap_api import PairResponse
 from app.settings import UniswapSettings
 
 
