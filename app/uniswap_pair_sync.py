@@ -1,12 +1,12 @@
 import asyncio
 import threading
-import time
 from asyncio import gather
 
 from fastapi import FastAPI
 
 from app import settings
 from app.core.httpx import create_httpx_client
+from app.logger import logger
 from app.proxies.uniswap import UniswapProxy
 from app.schemas.uniswap_api import PairResponse, TokenResponse
 from app.settings import UniswapSettings
@@ -37,11 +37,11 @@ class UniswapSyncer(threading.Thread):
                 (pair.token0, pair.token1) for pair in pair_list
             ]
         )
-        print(f"Synced {len(pair_list)} pairs")
+        logger.info(f"Synced {len(pair_list)} pairs")
 
     def handle_token_data(self, token_list: list[TokenResponse]):
         self.state.token_graph.add_nodes_from(token_list)  # noqa E501
-        print(f"Synced {len(token_list)} tokens")
+        logger.info(f"Synced {len(token_list)} tokens")
 
     async def load_all(self, getter, setter):
         skip = 0
@@ -52,12 +52,12 @@ class UniswapSyncer(threading.Thread):
             try:
                 items = await getter(skip=skip, first=first)
             except Exception as e:
-                print(e)
+                logger.error(f"Error while loading data: {e}")
                 break
             if len(items) == 0:
                 break
             setter(items)
-            print(f"Loaded {first}, processed: {skip}")
+            logger.info(f"Loaded {first}, processed: {skip}")
             skip += first
 
     async def load_all_pairs(self):
