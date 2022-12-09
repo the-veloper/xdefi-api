@@ -8,6 +8,7 @@ from strawberry.fastapi import GraphQLRouter
 from app import settings
 from app.db.session import create_async_database
 from app.graphql.query import Query
+from app.repositories.token_repository import TokenRepository
 from app.routers import healthchecks_router
 from app.uniswap_pair_sync import UniswapSyncer
 from app.web3.session import get_web3_provider, uniswap_factory
@@ -37,7 +38,6 @@ def create_app() -> FastAPI:
 
     app.state.uniswap = uniswap_factory(app.state.web3, uniswap_settings.factory_address)  # noqa: E501
     app.state.uniswap_settings = settings.get_uniswap_settings()
-
     app.state.token_graph = nx.Graph()
 
     # Shutdown handler

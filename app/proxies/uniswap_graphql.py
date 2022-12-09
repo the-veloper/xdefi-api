@@ -50,11 +50,13 @@ class UniswapGraphQLProxy(BaseHTTPXProxy):
                 id
                 symbol
                 name
+                decimals
             }}
             token1 {{
                 id
                 symbol
                 name
+                decimals
             }}
             token0Price
             token1Price

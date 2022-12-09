@@ -48,11 +48,13 @@ class UniswapFactoryProxy(BaseContractProxy):
         contract = self.get_token_contract(address)
         symbol = contract.functions.symbol().call()
         name = contract.functions.name().call()
+        decimals = contract.functions.decimals().call()
 
         return TokenResponse(
             id=address,
             symbol=symbol,
             name=name,
+            decimals=decimals,
         )
 
     def get_pair(self, index: int) -> PairResponse:

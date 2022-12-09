@@ -8,3 +8,7 @@ class UniswapAPIConnectionError(UniswapAPIError):
 
 class UnexpectedAPIResponseError(Exception):
     pass
+
+
+class UserInterrupt(Exception):
+    pass

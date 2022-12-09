@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 from app import settings
 from app.core.httpx import create_httpx_client
+from app.exceptions import UserInterrupt
 from app.logger import logger
 from app.proxies.uniswap_contract import UniswapFactoryProxy
 from app.proxies.uniswap_graphql import UniswapGraphQLProxy
@@ -23,6 +24,7 @@ class UniswapSyncer(threading.Thread):
     ):
         super().__init__(*args, **kwargs)
         httpx_settings: settings.HTTPXSettings = settings.get_httpx()
+
         self.uniswap_client_pool = create_httpx_client(settings=httpx_settings)  # noqa: E501
         self.uniswap_proxy = UniswapGraphQLProxy(
             httpx_client=self.uniswap_client_pool,
@@ -37,15 +39,15 @@ class UniswapSyncer(threading.Thread):
         self.state = app.state
         self._stop_event = threading.Event()
 
-    def handle_pair_data(self, pair_list: list[PairResponse]):
+    async def handle_pair_data(self, pair_list: list[PairResponse]):
         for pair in pair_list:
             # weight = balance_target * input / (balance_source + input)
             # used to calculate the shortest path
             self.state.token_graph.add_edge(pair.token0.id, pair.token1.id, weight=pair.token0Price)  # noqa E501
-            self.handle_token_data([pair.token0, pair.token1])
+            await self.handle_token_data([pair.token0, pair.token1])
         logger.info(f"Synced {len(pair_list)} pairs")
 
-    def handle_token_data(self, token_list: list[TokenResponse]):
+    async def handle_token_data(self, token_list: list[TokenResponse]):
         for token in token_list:
             self.state.token_graph.add_node(token.id, token=token)  # noqa E501
         logger.info(f"Synced {len(token_list)} tokens")
@@ -83,8 +85,10 @@ class UniswapSyncer(threading.Thread):
 
     async def run_async(self):
         uniswap_settings: UniswapSettings = self.state.uniswap_settings
+
         task_tokens = asyncio.create_task(self.load_all_tokens())
         task_pairs = asyncio.create_task(self.load_all_pairs())
+
         while True:
             if self._stop_event.is_set():
                 break
@@ -103,16 +107,16 @@ class UniswapSyncer(threading.Thread):
 
     async def load_contract_pair(self, pair_index: int):
         if self._stop_event.is_set():
-            raise Exception("Stop event is set")
+            raise UserInterrupt("Stop event is set")
         pair_data = self.uniswap_factory.get_pair(pair_index)
-        self.handle_pair_data([pair_data])
+        await self.handle_pair_data([pair_data])
         logger.info(f"Loaded pair {pair_data}")
 
     def run(self, *args, **kwargs):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.run_async())
-        loop.close()
+        try:
+            asyncio.run(self.run_async())
+        except UserInterrupt:
+            pass
 
     def stop(self):
         self._stop_event.set()

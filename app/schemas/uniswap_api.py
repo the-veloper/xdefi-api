@@ -7,9 +7,13 @@ class TokenResponse(BaseModel):
     id: str
     name: str
     symbol: str
+    decimals: int
 
     def __hash__(self):
         return hash(self.id)
+
+    class Config:
+        orm_mode = True
 
 
 class PairResponse(BaseModel):
