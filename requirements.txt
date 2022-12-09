@@ -5,3 +5,4 @@ sqlalchemy==1.4.44
 asyncpg==0.27.0
 strawberry-graphql==0.144.2
 web3==5.31.3
+httpx==0.23.0

@@ -3,8 +3,11 @@ from fastapi import FastAPI
 from strawberry.fastapi import GraphQLRouter
 
 from app import settings
+from app.core.httpx import create_httpx_client
 from app.db.session import create_async_database
 from app.graphql.query import Query
+from app.proxies.uniswap import UniswapProxy
+from app.uniswap_pair_sync import UniswapSyncer
 from app.web3.session import get_web3_provider, uniswap_factory
 
 NAME = "xdefi-api"
@@ -14,6 +17,10 @@ ROOT_PATH = f"/{NAME}"
 def create_app() -> FastAPI:
     database_settings: settings.DatabaseSettings = settings.get_database_settings()  # noqa: E501
     web3_settings: settings.Web3Settings = settings.get_web3_settings()  # noqa: E501
+    httpx_settings: settings.HTTPXSettings = settings.get_httpx()
+
+
+    uniswap_client_pool = create_httpx_client(settings=httpx_settings)  # noqa: E501
 
     app = FastAPI(
         title=NAME,
@@ -25,10 +32,19 @@ def create_app() -> FastAPI:
 
     # App State
     app.state.app_name = NAME
-    app.state.engine, app.state.sessionmaker = create_async_database(uri=database_settings.uri)  # noqa: E501
-    app.state.web3 = get_web3_provider(web3_settings.node_url)
-    app.state.uniswap = uniswap_factory(app.state.web3)
 
+    app.state.web3 = get_web3_provider(web3_settings.node_url)
+    app.state.engine, app.state.sessionmaker = create_async_database(uri=database_settings.uri)  # noqa: E501
+
+    app.state.uniswap = uniswap_factory(app.state.web3)
+    app.state.uniswap_settings = settings.get_uniswap_settings()
+    app.state.uniswap_proxy = UniswapProxy(
+        httpx_client=uniswap_client_pool,
+        uniswap_settings=app.state.uniswap_settings
+    )
+    app.state.uniswap_pairs = {}
+    app.state.uniswap_syncer = UniswapSyncer(app=app)
+    app.state.uniswap_syncer.start()
     # GraphQL
     schema = strawberry.Schema(query=Query)
     graphql_app = GraphQLRouter(

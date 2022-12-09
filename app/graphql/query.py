@@ -3,7 +3,7 @@ from typing import List
 import strawberry
 from strawberry.types import Info
 
-from app.schemes.token import Token
+from app.graphql.schemas.token import Token
 
 
 @strawberry.type
