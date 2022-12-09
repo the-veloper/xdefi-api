@@ -8,6 +8,9 @@ class TokenResponse(BaseModel):
     name: str
     symbol: str
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class PairResponse(BaseModel):
     id: str

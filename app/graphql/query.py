@@ -8,6 +8,10 @@ from app.graphql.schemas.route import RouteInput, Route
 from app.graphql.schemas.token import Token
 
 
+def _weight(l_node, r_node, attributes):
+    return 1
+
+
 @strawberry.type
 class Query:
     @strawberry.field
@@ -21,13 +25,11 @@ class Query:
     def best_route(self, route_input: RouteInput, info: Info) -> Route:
         app = info.context["app"]
 
-        paths = nx.all_simple_paths(
+        shortest_path = nx.shortest_path(
             app.state.token_graph,
             route_input.fromToken,
             route_input.toToken,
-            cutoff=5
+            weight=_weight,
         )
-        for path in map(nx.utils.pairwise, paths):
-            print(list(path))
 
-        return Route(id="gega", path=[Token(id="gega", name="gega", symbol="gega", price=1)])
+        return Route(id="gega", path=shortest_path)
