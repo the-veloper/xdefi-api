@@ -46,8 +46,6 @@ def create_app() -> FastAPI:
         uniswap_settings=app.state.uniswap_settings
     )
     app.state.token_graph = nx.Graph()
-    app.state.uniswap_syncer = UniswapSyncer(app=app)
-    app.state.uniswap_syncer.start()
 
     # Shutdown handler
     @app.on_event("shutdown")
@@ -75,4 +73,10 @@ def create_app() -> FastAPI:
         tags=["Healthchecks"],
     )
 
+    app.state.uniswap_syncer = UniswapSyncer(app=app)
+    app.state.uniswap_syncer.start()
+
     return app
+
+
+application = create_app()
