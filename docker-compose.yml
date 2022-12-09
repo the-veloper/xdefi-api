@@ -7,6 +7,8 @@ services:
       - xdefi-db:/var/lib/postgresql/data
     env_file:
       - db.env
+    ports:
+      - "5432:5432"
   web:
     build: .
     command: uvicorn app.main:application --reload --host 0.0.0.0 --port 8000
