@@ -34,3 +34,11 @@ class GraphQLPairsResponse(BaseModel):
 
 class GraphQLTokensResponse(BaseModel):
     data: TokenListResponse
+
+
+class ContractData(BaseModel):
+    id: str
+    token0: str
+    token1: str
+    reserve0: int
+    reserve1: int

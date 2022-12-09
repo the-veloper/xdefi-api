@@ -103,8 +103,8 @@ class UniswapSyncer(threading.Thread):
     async def load_contract_pair(self, pair_index: int):
         if self._stop_event.is_set():
             raise Exception("Stop event is set")
-        contract = self.uniswap_factory.get_pair_contract(pair_index)
-        logger.info(f"Loaded pair {contract.address}")
+        contract_data = self.uniswap_factory.get_pair_contract_data(pair_index)
+        logger.info(f"Loaded pair {contract_data}")
 
     def run(self, *args, **kwargs):
         loop = asyncio.new_event_loop()
