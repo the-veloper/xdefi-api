@@ -22,12 +22,15 @@ class UniswapSyncer(threading.Thread):
         self._stop_event = threading.Event()
 
     def handle_pair_data(self, pair_list: list[PairResponse]):
-        for pair in pair_list:
-            self.state.uniswap_pairs[pair.id] = pair
+        self.state.token_graph.add_edges_from(
+            [
+                (pair.token0.id, pair.token1.id) for pair in pair_list
+            ]
+        )
         print(f"Synced {len(pair_list)} pairs")
 
     def handle_token_data(self, token_list: list[TokenResponse]):
-        print(token_list)
+        self.state.token_graph.add_nodes_from([token.id for token in token_list])  # noqa E501
         print(f"Synced {len(token_list)} tokens")
 
     async def load_all(self, getter, setter):

@@ -1,3 +1,4 @@
+import networkx as nx
 from fastapi import APIRouter, status, Request, Response
 
 from app.schemas.responses_schema import Healthcheck, Degraded
@@ -26,7 +27,7 @@ async def readiness_healthcheck(
     response: Response,
 ):
     healthcheck_status = False
-    if len(request.app.state.uniswap_pairs):
+    if len(list(request.app.state.token_graph.nodes)):
         healthcheck_status = True
     else:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
