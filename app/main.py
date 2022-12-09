@@ -19,6 +19,7 @@ ROOT_PATH = f"/{NAME}"
 def create_app() -> FastAPI:
     database_settings: settings.DatabaseSettings = settings.get_database_settings()  # noqa: E501
     web3_settings: settings.Web3Settings = settings.get_web3_settings()  # noqa: E501
+    uniswap_settings: settings.UniswapSettings = settings.get_uniswap_settings()  # noqa: E501
 
     app = FastAPI(
         title=NAME,
@@ -34,7 +35,7 @@ def create_app() -> FastAPI:
     app.state.web3 = get_web3_provider(web3_settings.node_url)
     app.state.engine, app.state.sessionmaker = create_async_database(uri=database_settings.uri)  # noqa: E501
 
-    app.state.uniswap = uniswap_factory(app.state.web3)
+    app.state.uniswap = uniswap_factory(app.state.web3, uniswap_settings.factory_address)  # noqa: E501
     app.state.uniswap_settings = settings.get_uniswap_settings()
 
     app.state.token_graph = nx.Graph()

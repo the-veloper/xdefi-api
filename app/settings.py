@@ -53,6 +53,7 @@ class HTTPXSettings(BaseSettings):
 class UniswapSettings(BaseSettings):
     graphql_url: AnyHttpUrl
     sync_interval: int = 5
+    factory_address: str
 
     class Config:
         case_sensitive: bool = False

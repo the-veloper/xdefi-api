@@ -35,11 +35,12 @@ class UniswapSyncer(threading.Thread):
         for pair in pair_list:
             # weight = balance_target * input / (balance_source + input)
             # used to calculate the shortest path
-            self.state.token_graph.add_edge(pair.token0, pair.token1, weight=pair.token0Price)  # noqa E501
+            self.state.token_graph.add_edge(pair.token0.id, pair.token1.id, weight=pair.token0Price)  # noqa E501
         logger.info(f"Synced {len(pair_list)} pairs")
 
     def handle_token_data(self, token_list: list[TokenResponse]):
-        self.state.token_graph.add_nodes_from(token_list)  # noqa E501
+        for token in token_list:
+            self.state.token_graph.add_node(token.id, token=token)  # noqa E501
         logger.info(f"Synced {len(token_list)} tokens")
 
     async def load_all(self, getter, setter):
@@ -60,9 +61,17 @@ class UniswapSyncer(threading.Thread):
             skip += first
 
     async def load_all_pairs(self):
+        """
+        Load 5000 most traded pairs from Uniswap
+        :return:
+        """
         await self.load_all(self.uniswap_proxy.get_pairs, self.handle_pair_data)
 
     async def load_all_tokens(self):
+        """
+        Load 5000 tokens from Uniswap
+        :return:
+        """
         await self.load_all(self.uniswap_proxy.get_tokens, self.handle_token_data)
 
     async def run_async(self):
