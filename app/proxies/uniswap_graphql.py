@@ -13,7 +13,7 @@ from app.settings import UniswapSettings
 
 
 @dataclass
-class UniswapProxy(BaseHTTPXProxy):
+class UniswapGraphQLProxy(BaseHTTPXProxy):
     uniswap_settings: UniswapSettings
 
     async def _post(self, json: dict):

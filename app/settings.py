@@ -1,9 +1,12 @@
 from functools import lru_cache
+from typing import Any
 
-from pydantic import BaseSettings
+from eth_typing import ChecksumAddress
+from pydantic import BaseSettings, Field
 from pydantic import PostgresDsn
 from pydantic import validator
 from pydantic import AnyHttpUrl
+from web3 import Web3
 
 from app.constants import DEFAULT_HTTPX_MAX_CONNECTIONS, \
     DEFAULT_HTTPX_MAX_KEEPALIVE_CONNECTIONS, DEFAULT_HTTPX_TIMEOUT, \
@@ -53,7 +56,11 @@ class HTTPXSettings(BaseSettings):
 class UniswapSettings(BaseSettings):
     graphql_url: AnyHttpUrl
     sync_interval: int = 5
-    factory_address: str
+    factory_address: ChecksumAddress
+
+    @validator("factory_address", pre=True)
+    def parse_factory_address(cls, value):
+        return Web3.toChecksumAddress(value)
 
     class Config:
         case_sensitive: bool = False

@@ -7,7 +7,8 @@ from fastapi import FastAPI
 from app import settings
 from app.core.httpx import create_httpx_client
 from app.logger import logger
-from app.proxies.uniswap import UniswapProxy
+from app.proxies.uniswap_contract import UniswapFactoryProxy
+from app.proxies.uniswap_graphql import UniswapGraphQLProxy
 from app.schemas.uniswap_api import PairResponse, TokenResponse
 from app.settings import UniswapSettings
 
@@ -23,9 +24,14 @@ class UniswapSyncer(threading.Thread):
         super().__init__(*args, **kwargs)
         httpx_settings: settings.HTTPXSettings = settings.get_httpx()
         self.uniswap_client_pool = create_httpx_client(settings=httpx_settings)  # noqa: E501
-        self.uniswap_proxy = UniswapProxy(
+        self.uniswap_proxy = UniswapGraphQLProxy(
             httpx_client=self.uniswap_client_pool,
             uniswap_settings=app.state.uniswap_settings
+        )
+        self.uniswap_factory = UniswapFactoryProxy(
+            web3_provider=app.state.web3,
+            uniswap_settings=app.state.uniswap_settings,
+            contract=app.state.uniswap,
         )
         self.app = app
         self.state = app.state
@@ -81,12 +87,24 @@ class UniswapSyncer(threading.Thread):
         while True:
             if self._stop_event.is_set():
                 break
-            await gather(task_tokens, task_pairs)
+            await gather(task_tokens, task_pairs, *self.factory_pair_tasks())
             await asyncio.sleep(uniswap_settings.sync_interval)
 
         await gather(
             self.uniswap_client_pool.aclose(),
         )
+
+    def factory_pair_tasks(self):
+        tasks = []
+        for pair_index in range(self.uniswap_factory.get_pair_length()):
+            tasks.append(asyncio.create_task(self.load_contract_pair(pair_index)))
+        return tasks
+
+    async def load_contract_pair(self, pair_index: int):
+        if self._stop_event.is_set():
+            raise Exception("Stop event is set")
+        contract = self.uniswap_factory.get_pair_contract(pair_index)
+        logger.info(f"Loaded pair {contract.address}")
 
     def run(self, *args, **kwargs):
         loop = asyncio.new_event_loop()
