@@ -32,5 +32,5 @@ class Query:
             weight=_weight,
         )
 
-        path_tokens = [tokens[token] for token in shortest_path]
-        return Route(id="gega", path=path_tokens)
+        path_tokens = tuple(tokens[token] for token in shortest_path)
+        return Route(path=path_tokens)

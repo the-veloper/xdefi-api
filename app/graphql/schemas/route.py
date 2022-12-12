@@ -9,7 +9,14 @@ class RouteInput:
     toToken: str
 
 
+def _get_data(root) -> int:
+    return hash(root)
+
+
 @strawberry.type
 class Route:
-    id: str
-    path: list[Token]
+    path: tuple[Token]
+    data: int = strawberry.field(resolver=_get_data)
+
+    def __hash__(self):
+        return hash(self.path)

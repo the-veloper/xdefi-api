@@ -44,7 +44,7 @@ class UniswapGraphQLProxy(BaseHTTPXProxy):
     ) -> list[PairResponse]:
         query = f"""
         {{
-          pairs(orderBy: reserveUSD, orderDirection: desc, skip: {skip}, first: {first}) {{
+          pairs(orderBy: volumeUSD, orderDirection: desc, skip: {skip}, first: {first}) {{
             id
             token0 {{
                 id

@@ -9,3 +9,6 @@ class Token:
     name: str
     symbol: str
     price: Decimal
+
+    def __hash__(self):
+        return hash(self.id)

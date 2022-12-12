@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 
 class TokenResponse(BaseModel):
@@ -11,6 +11,12 @@ class TokenResponse(BaseModel):
 
     def __hash__(self):
         return hash(self.id)
+
+    @validator('id')
+    def validate_id(cls, v):
+        if not v.startswith('0x'):
+            raise ValueError('Token id must start with 0x')
+        return v.lower()
 
     class Config:
         orm_mode = True
